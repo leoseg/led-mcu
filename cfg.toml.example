@@ -1,0 +1,6 @@
+[led-mcu]
+wifi_name="wifi_name"
+wifi_password="wifi_password"
+mqtt_host="host"
+mqtt_port=1884
+mqtt_topic="led"
