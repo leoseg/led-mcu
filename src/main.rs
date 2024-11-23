@@ -4,11 +4,9 @@ mod led;
 
 use esp_idf_svc::wifi::{BlockingWifi, EspWifi};
 use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_hal::gpio::PinDriver;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
 use esp_idf_svc::eventloop::EspSystemEventLoop;
 use anyhow::Result;
-use esp_idf_hal::ledc::{LedcDriver, LedcChannel, LedcTimer};
 
 #[toml_cfg::toml_config]
 pub struct Config {
@@ -41,9 +39,9 @@ fn main() -> Result<()>{
     )?;
     wifi::setup_wifi(&mut wifi, app_config.wifi_name, app_config.wifi_password)?;
     log::info!("Wifi connected!");
-    
-    
+    let mut led_controller = led::LedController::new(peripherals.pins.gpio44,peripherals.rmt.channel0);
+    log::info!("Led Controller initialized!");
     let (mut mqtt_client,mut mqtt_conn) = mqtt_client::init_mqtt_client(app_config.mqtt_host, app_config.mqtt_port)?;
-    mqtt_client::run(&mut mqtt_client, &mut mqtt_conn, app_config.mqtt_topic);
+    mqtt_client::run(&mut mqtt_client, &mut mqtt_conn, app_config.mqtt_topic, &mut led_controller);
     Ok(())
 }
