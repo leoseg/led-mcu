@@ -7,6 +7,11 @@ use anyhow::Result;
 use crate::led;
 use crate::led::LedController;
 
+
+/// Function to initialize MQTT client
+/// host: &str - MQTT Broker host
+/// port: u16 - MQTT Broker port
+/// return: Result<(EspMqttClient<'static>, EspMqttConnection),EspError> - MQTT Client and Connection
 pub fn init_mqtt_client(host : & str, port: u16) -> Result<(EspMqttClient<'static>, EspMqttConnection),EspError>{
     let mqtt_config = MqttClientConfiguration {
         client_id: Some("led-mcu"),
@@ -21,6 +26,11 @@ pub fn init_mqtt_client(host : & str, port: u16) -> Result<(EspMqttClient<'stati
     Ok((mqtt_client, mqtt_conn))
 }
 
+/// Function to run MQTT client in loop subscribing to a topic and updating led state based on received messages
+/// client: &mut EspMqttClient - MQTT Client
+/// conn: &mut EspMqttConnection - MQTT Connection
+/// topic: &str - MQTT Topic to subscribe
+/// led_controller: &mut LedController - Led Controller used for updating led state
 pub fn run(client : & mut EspMqttClient, conn : & mut EspMqttConnection, topic: &str, led_controller : &mut LedController) {
     std::thread::scope(|function_scope|
     {

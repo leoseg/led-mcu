@@ -2,6 +2,10 @@ use embedded_svc::wifi::{AuthMethod, ClientConfiguration, Configuration};
 use esp_idf_svc::wifi::{BlockingWifi, EspWifi};
 use anyhow::Result;
 
+/// Function to setup wifi connection
+/// wifi: BlockingWifi<EspWifi> - Wifi instance
+/// ssid: &str - Wifi SSID
+/// password: &str - Wifi Password
 pub fn setup_wifi(wifi : &mut BlockingWifi<EspWifi>, ssid: &str, password: &str) -> Result<()> {
     wifi.set_configuration(&Configuration::Client(ClientConfiguration {
         ssid: ssid.parse().unwrap(),
@@ -19,10 +23,8 @@ pub fn setup_wifi(wifi : &mut BlockingWifi<EspWifi>, ssid: &str, password: &str)
     // Connect Wifi
     wifi.connect().expect(&format!("Failed to connect wifi with configuration ssid: {} and password: {}", ssid, password));
 
-    // Wait until the network interface is up
     wifi.wait_netif_up().expect("Failed to wait for network interface up");
 
-    // Print Out Wifi Connection Configuration
     while !wifi.is_connected().unwrap() {
         // Get and print connection configuration
         let config = wifi.get_configuration().unwrap();

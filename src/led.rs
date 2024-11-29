@@ -18,7 +18,7 @@ enum LedState {
     Off,
 }
 
-
+/// Struct to represent a Led Setting
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Led {
     led_state: LedState,
@@ -85,6 +85,9 @@ impl PartialEq for Led {
 
 impl LedController {
 
+    /// Function to initialize Led Controller and start a thread to listen for messages to update Led state
+    /// led_pin: AnyOutputPin - GPIO Pin to which the LED is connected
+    /// channel: CHANNEL0 - RMT Channel to use for LED is Channel 0
     pub fn new(led_pin : AnyOutputPin, channel: CHANNEL0) -> LedController {
         let (tx, rx) = std::sync::mpsc::channel::<Led>();
         thread:: spawn( move || {

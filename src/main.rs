@@ -35,10 +35,13 @@ fn main() -> Result<()>{
         EspWifi::new(peripherals.modem, sysloop.clone(), Some(nvs))?,
         sysloop,
     )?;
+    // Setup Wifi
     wifi::setup_wifi(&mut wifi, app_config.wifi_name, app_config.wifi_password)?;
     log::info!("Wifi connected!");
+    // Initialize Led Controller
     let mut led_controller = led::LedController::new(AnyOutputPin::from(peripherals.pins.gpio3), peripherals.rmt.channel0);
     log::info!("Led Controller initialized!");
+    // Initialize MQTT Client
     let (mut mqtt_client,mut mqtt_conn) = mqtt_client::init_mqtt_client(app_config.mqtt_host, app_config.mqtt_port)?;
     mqtt_client::run(&mut mqtt_client, &mut mqtt_conn, app_config.mqtt_topic, &mut led_controller);
     Ok(())
