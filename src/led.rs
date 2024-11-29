@@ -1,13 +1,14 @@
 use std::cmp::PartialEq;
 use std::sync::mpsc::Sender;
 use std::thread;
-use esp_idf_hal::gpio::Gpio44;
+use esp_idf_hal::gpio::{AnyOutputPin};
 use log::info;
-use smart_leds_trait::{SmartLedsWrite, White};
+use smart_leds_trait::{SmartLedsWrite};
 use serde::{Serialize, Deserialize};
-use esp_idf_hal::rmt::CHANNEL0;
-use ws2812_esp32_rmt_driver::driver::color::LedPixelColorGrbw32;
-use ws2812_esp32_rmt_driver::{LedPixelEsp32Rmt, RGBW8};
+use esp_idf_hal::rmt::{CHANNEL0};
+use smart_leds::RGB8;
+use ws2812_esp32_rmt_driver::driver::color::{LedPixelColorGrb24};
+use ws2812_esp32_rmt_driver::{LedPixelEsp32Rmt, Ws2812Esp32Rmt};
 
 const NUMBER_OF_LEDS: usize = 60;
 
@@ -84,15 +85,16 @@ impl PartialEq for Led {
 
 impl LedController {
 
-    pub fn new(led_pin : Gpio44,channel: CHANNEL0) -> LedController {
+    pub fn new(led_pin : AnyOutputPin, channel: CHANNEL0) -> LedController {
         let (tx, rx) = std::sync::mpsc::channel::<Led>();
         thread:: spawn( move || {
             let mut led = Led {
                 led_state: LedState::Off,
                 color: Color::White,
-                percentage: 0,
+                percentage: 1,
             };
             let mut ws2812 = LedController::init_led(led_pin,channel);
+            ws2812.write(std::iter::repeat(RGB8::default()).take(NUMBER_OF_LEDS)).unwrap();
             loop {
                 led = match rx.recv() {
                     Ok(new_led) => {
@@ -104,17 +106,23 @@ impl LedController {
                         match new_led.led_state {
                             LedState::On => {
                                 info!("Turning LED on: {:?}", new_led);
-                                let pixels = (0..NUMBER_OF_LEDS).map(|i|
-                                        if i % ((100/led.percentage) as f32).round() as usize == 0 { RGBW8::new_alpha(r, g, b, White(0)) } else { RGBW8::new_alpha(0, 0, 0, White(0)) }
-                                );
-
+                                let step = (100 / new_led.percentage) as usize;
+                                let pixels: Vec<RGB8> = (0..NUMBER_OF_LEDS)
+                                    .map(|i| {
+                                        if i % step == 0 {
+                                            RGB8::new(r, g, b)
+                                        } else {
+                                            RGB8::default()
+                                        }
+                                    })
+                                    .collect();
+                                info!("Pixels: {:?}", pixels);
                                 ws2812.write(pixels).unwrap();
                                 thread::sleep(std::time::Duration::from_millis(1000));
                             }
                             LedState::Off => {
                                 info!("Turning LED off: {:?}", new_led);
-                                let pixels = std::iter::repeat(RGBW8::new_alpha(0, 0, 0, White(0))).take(NUMBER_OF_LEDS);
-                                ws2812.write(pixels).unwrap();
+                                ws2812.write(std::iter::repeat(RGB8::default()).take(NUMBER_OF_LEDS)).unwrap();
                             }
                         }
                         new_led
@@ -131,8 +139,8 @@ impl LedController {
         }
     }
 
-    fn init_led(led_pin : Gpio44,channel: CHANNEL0) -> LedPixelEsp32Rmt<'static,RGBW8,LedPixelColorGrbw32> {
-        LedPixelEsp32Rmt::<RGBW8, LedPixelColorGrbw32>::new(channel, led_pin).unwrap()
+    fn init_led(led_pin: AnyOutputPin, channel: CHANNEL0) -> LedPixelEsp32Rmt<'static,RGB8, LedPixelColorGrb24> {
+        Ws2812Esp32Rmt::new(channel,led_pin).unwrap()
     }
 
     pub fn set_led_state(&mut self, new_led : Led) {

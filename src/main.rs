@@ -2,11 +2,12 @@ mod wifi;
 mod mqtt_client;
 mod led;
 
-use esp_idf_svc::wifi::{BlockingWifi, EspWifi};
-use esp_idf_hal::peripherals::Peripherals;
-use esp_idf_svc::nvs::EspDefaultNvsPartition;
-use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_hal::gpio::{AnyOutputPin};
 use anyhow::Result;
+use esp_idf_hal::peripherals::Peripherals;
+use esp_idf_svc::eventloop::EspSystemEventLoop;
+use esp_idf_svc::nvs::EspDefaultNvsPartition;
+use esp_idf_svc::wifi::{BlockingWifi, EspWifi};
 
 #[toml_cfg::toml_config]
 pub struct Config {
@@ -23,10 +24,7 @@ pub struct Config {
 }
 
 fn main() -> Result<()>{
-    // It is necessary to call this function once. Otherwise some patches to the runtime
-    // implemented by esp-idf-sys might not link properly. See https://github.com/esp-rs/esp-idf-template/issues/71
     esp_idf_svc::sys::link_patches();
-
     // Bind the log crate to the ESP Logging facilities
     esp_idf_svc::log::EspLogger::initialize_default();
     let peripherals = Peripherals::take().unwrap();
@@ -39,7 +37,7 @@ fn main() -> Result<()>{
     )?;
     wifi::setup_wifi(&mut wifi, app_config.wifi_name, app_config.wifi_password)?;
     log::info!("Wifi connected!");
-    let mut led_controller = led::LedController::new(peripherals.pins.gpio44,peripherals.rmt.channel0);
+    let mut led_controller = led::LedController::new(AnyOutputPin::from(peripherals.pins.gpio3), peripherals.rmt.channel0);
     log::info!("Led Controller initialized!");
     let (mut mqtt_client,mut mqtt_conn) = mqtt_client::init_mqtt_client(app_config.mqtt_host, app_config.mqtt_port)?;
     mqtt_client::run(&mut mqtt_client, &mut mqtt_conn, app_config.mqtt_topic, &mut led_controller);

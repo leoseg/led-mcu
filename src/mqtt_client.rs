@@ -41,10 +41,11 @@ pub fn run(client : & mut EspMqttClient, conn : & mut EspMqttConnection, topic: 
                 info!("Connection closed");
             })
             .unwrap();
+        std::thread::sleep(Duration::from_millis(5000));
         loop {
             if let Err(e) = client.subscribe(topic, QoS::AtMostOnce) {
-                error!("Failed to subscribe to topic \"{topic}\": {e}, retrying...");
-                std::thread::sleep(Duration::from_millis(500));
+                error!("Failed to subscribe to topic \"{}\": {:?}", topic, e);
+                std::thread::sleep(Duration::from_millis(5000));
                 continue;
             }
             info!("Subscribed to topic \"{topic}\"");
