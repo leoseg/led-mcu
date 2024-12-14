@@ -1,5 +1,5 @@
 use std::cmp::PartialEq;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use esp_idf_hal::gpio::{AnyOutputPin};
 use log::info;
@@ -95,8 +95,7 @@ impl LedController {
     /// Function to initialize Led Controller and start a thread to listen for messages to update Led state
     /// led_pin: AnyOutputPin - GPIO Pin to which the LED is connected
     /// channel: CHANNEL0 - RMT Channel to use for LED is Channel 0
-    pub fn new<C:esp_idf_hal::rmt::RmtChannel>(led_pin : AnyOutputPin, channel: C) -> LedController {
-        let (tx, rx) = std::sync::mpsc::channel::<Led>();
+    pub fn new<C:esp_idf_hal::rmt::RmtChannel>(led_pin : AnyOutputPin, channel: C, rx: Receiver<Led>) -> LedController {
         thread:: spawn( move || {
             let mut led = Led {
                 led_state: LedState::Off,
@@ -178,10 +177,6 @@ impl LedController {
 
     fn init_led<C: esp_idf_hal::rmt::RmtChannel>(led_pin: AnyOutputPin, channel: C) -> LedPixelEsp32Rmt<'static,RGB8, LedPixelColorGrb24> {
         Ws2812Esp32Rmt::new(channel,led_pin).unwrap()
-    }
-
-    pub fn set_led_state(&mut self, new_led : Led) {
-        self.tx.send(new_led).unwrap();
     }
 
 }

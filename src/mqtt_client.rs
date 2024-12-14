@@ -1,3 +1,4 @@
+use std::sync::mpsc::Sender;
 use std::time::Duration;
 use embedded_svc::mqtt::client::QoS;
 use esp_idf_hal::sys::EspError;
@@ -31,7 +32,7 @@ pub fn init_mqtt_client(host : & str, port: u16) -> Result<(EspMqttClient<'stati
 /// conn: &mut EspMqttConnection - MQTT Connection
 /// topic: &str - MQTT Topic to subscribe
 /// led_controller: &mut LedController - Led Controller used for updating led state
-pub fn run(client : & mut EspMqttClient, conn : & mut EspMqttConnection, topic: &str, led_controller : &mut LedController) {
+pub fn run(client : & mut EspMqttClient, conn : & mut EspMqttConnection, topic: &str, sender: Sender<led>) {
     std::thread::scope(|function_scope|
     {
 
@@ -45,7 +46,7 @@ pub fn run(client : & mut EspMqttClient, conn : & mut EspMqttConnection, topic: 
                     if event.payload().to_string().starts_with("Received"){
                         let payload = event.payload().to_string();
                         let led = extract_and_parse_payload(&payload).expect("Failed to parse payload");
-                        led_controller.set_led_state(led);
+                        sender.send(led).expect("Error sending message to Led Controller");
                     }
                 }
                 info!("Connection closed");
